@@ -25,7 +25,7 @@ All generated from the authoritative knowledge base -- no hallucinated flags or 
 ## Installation
 
 ```bash
-npx skills add ddjain/krkn-skill
+npx skills add krkn-chaos/krkn-skills
 ```
 
 That's it. The skill is now available in your Claude Code sessions. Start using it:
@@ -41,20 +41,20 @@ That's it. The skill is now available in your Claude Code sessions. Start using 
 
 ```bash
 mkdir -p .claude/skills
-curl -o .claude/skills/krkn-scenario.md https://raw.githubusercontent.com/ddjain/krkn-skill/main/SKILL.md
+curl -o .claude/skills/krkn-scenario.md https://raw.githubusercontent.com/krkn-chaos/krkn-skills/main/SKILL.md
 ```
 
 ### Global installation (available in all projects)
 
 ```bash
 mkdir -p ~/.claude/skills
-curl -o ~/.claude/skills/krkn-scenario.md https://raw.githubusercontent.com/ddjain/krkn-skill/main/SKILL.md
+curl -o ~/.claude/skills/krkn-scenario.md https://raw.githubusercontent.com/krkn-chaos/krkn-skills/main/SKILL.md
 ```
 
 ### Clone this repo
 
 ```bash
-git clone https://github.com/ddjain/krkn-skill.git
+git clone https://github.com/krkn-chaos/krkn-skills.git
 ```
 
 Then register in your project's `.claude/settings.local.json`:
@@ -98,10 +98,10 @@ The skill auto-pulls the latest knowledge base on every use. To update the skill
 
 ```bash
 # If installed via npx skills
-npx skills add ddjain/krkn
+npx skills add krkn-chaos/krkn-skills
 
 # If installed via curl
-curl -o ~/.claude/skills/krkn-scenario.md https://raw.githubusercontent.com/ddjain/krkn-skill/main/SKILL.md
+curl -o ~/.claude/skills/krkn-scenario.md https://raw.githubusercontent.com/krkn-chaos/krkn-skills/main/SKILL.md
 
 # If cloned
 git -C /path/to/krkn-skill pull
