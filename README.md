@@ -104,5 +104,5 @@ npx skills add krkn-chaos/krkn-skills
 curl -o ~/.claude/skills/krkn-scenario.md https://raw.githubusercontent.com/krkn-chaos/krkn-skills/main/SKILL.md
 
 # If cloned
-git -C /path/to/krkn-skill pull
+git -C /path/to/krkn-skills pull
 ```
