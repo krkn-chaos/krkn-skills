@@ -306,7 +306,7 @@ This is the differentiating capability of this skill. Most PRs are self-containe
 | `abstract_scenario_plugin.py` changed | Breaking change to plugin API -- all krkn-hub scenarios inherit this | Note in review as high-impact; no automated check needed |
 | `requirements.txt` bumps `krkn-lib` version | krkn-hub's base image (`krkn:latest`) will pull this -- check compatibility | Note version change and flag if major version bump |
 
-### 5b. Triggers for krkn-hub PRs -> check krkn and krknctl
+### 5b. Triggers for krkn-hub PRs -> check krkn, krknctl, and krkn-dashboard
 
 | Trigger | What to check | How |
 |------|------|------|
@@ -315,6 +315,7 @@ This is the differentiating capability of this skill. Most PRs are self-containe
 | New scenario directory added | Does krkn have a matching scenario plugin? | `gh api repos/krkn-chaos/krkn/contents/krkn/scenario_plugins --jq '.[].name'` and look for match |
 | `run.sh` references a new Python script or module | Does it exist in krkn's codebase? | `gh api repos/krkn-chaos/krkn/contents/krkn --jq '.[].name'` as needed |
 | Base image changed from `:latest` to a pinned tag | Is the pinned version compatible with all env vars used? | Note in review for manual verification |
+| Parameter added, renamed, or removed in `krknctl-input.json` or `env.sh` | Does krkn-dashboard's parameterized run form still send the correct env var names? krkn-hub is the source of truth for scenario parameters -- the dashboard must stay in sync | `gh api repos/krkn-chaos/krkn-dashboard/contents/src/components/NewExperiment -H "Accept: application/vnd.github.raw"` and check for the affected parameter name |
 
 ### 5c. Triggers for krknctl PRs -> check krkn-hub
 
@@ -325,14 +326,15 @@ This is the differentiating capability of this skill. Most PRs are self-containe
 | New field added to `typing` package validators | Do krkn-hub's `krknctl-input.json` files use compatible field types? | Fetch a sample: `gh api repos/krkn-chaos/krkn-hub/contents/pod-scenarios/krknctl-input.json -H "Accept: application/vnd.github.raw"` |
 | Input field parsing logic changed in `cmd/run.go` | Could this break existing scenario inputs? | Note for manual verification |
 
-### 5d. Triggers for krkn-dashboard PRs -> check krkn and krknctl
+### 5d. Triggers for krkn-dashboard PRs -> check krkn, krknctl, and krkn-hub
 
 | Trigger | What to check | How |
 |------|------|------|
 | Changes to `server/opensearch/` or Elasticsearch query logic | Does the query structure match what krkn actually writes to the index? | `gh api repos/krkn-chaos/krkn/contents/krkn/telemetry -H "Accept: application/vnd.github.raw"` -- check field names and index patterns |
 | New experiment type added to the UI (`src/actions/` or `src/components/NewExperiment/`) | Is there a matching krkn scenario plugin? Is it discoverable via krknctl? | `gh api repos/krkn-chaos/krkn/contents/krkn/scenario_plugins --jq '.[].name'` and verify krknctl's label regex would surface it |
 | Changes to how the dashboard invokes or parses krknctl output (`server/index.js`) | Does the invocation format match krknctl's CLI contract? | `gh api repos/krkn-chaos/krknctl/contents/cmd -H "Accept: application/vnd.github.raw" --jq '.[].name'` -- check command/flag names haven't drifted |
-| Input field schema changes in `src/components/NewExperiment/` | Does the field structure still align with krknctl's `input_fields` label format? | `gh api repos/krkn-chaos/krknctl/contents/pkg/config/config.json -H "Accept: application/vnd.github.raw"` and check input field type definitions |
+| Input field schema changes in `src/components/NewExperiment/` | Does the field structure still align with krknctl's `input_fields` label format AND krkn-hub's `krknctl-input.json` definitions? | `gh api repos/krkn-chaos/krknctl/contents/pkg/config/config.json -H "Accept: application/vnd.github.raw"` for field types; fetch a representative `krknctl-input.json` from krkn-hub to verify env var names and defaults match what the dashboard sends |
+| Changes to parameterized run logic (how scenario parameters are collected and passed) | Do the parameter names match the env var names in krkn-hub's `env.sh` and `krknctl-input.json`? | `gh api repos/krkn-chaos/krkn-hub/contents/{scenario}/krknctl-input.json -H "Accept: application/vnd.github.raw"` -- krkn-hub is the source of truth for what parameters each scenario accepts |
 | Elasticsearch index name or field name changed in `server/` | Could break existing krkn telemetry data already in the index | Note as high-impact; flag for explicit testing |
 
 ### 5f. Triggers for other repos -> check krkn-dashboard
@@ -342,6 +344,8 @@ This is the differentiating capability of this skill. Most PRs are self-containe
 | krkn PR changes telemetry output field names or index structure | Does krkn-dashboard's OpenSearch queries still match? | `gh api repos/krkn-chaos/krkn-dashboard/contents/server/opensearch -H "Accept: application/vnd.github.raw"` and inspect field references |
 | krknctl PR changes label regex patterns in `config.json` | Does krkn-dashboard's experiment discovery logic still work with the new patterns? | `gh api repos/krkn-chaos/krkn-dashboard/contents/server/index.js -H "Accept: application/vnd.github.raw"` and check how krknctl output is parsed |
 | krknctl PR changes CLI flag names or output format for `run` or `list` commands | Does krkn-dashboard's server-side invocation of krknctl still match? | Note for manual verification -- krkn-dashboard calls krknctl as a subprocess |
+| krkn-hub PR adds, renames, or removes a parameter in `krknctl-input.json` or `env.sh` | Does krkn-dashboard's parameterized run form still send the correct env var names and defaults? | `gh api repos/krkn-chaos/krkn-dashboard/contents/src/components/NewExperiment -H "Accept: application/vnd.github.raw"` -- check that parameter names haven't drifted |
+| krkn-hub PR adds a new scenario directory | Is the new scenario surfaced in krkn-dashboard's experiment selector? | Informational only -- note if the scenario is missing from the UI |
 
 ### 5g. When NOT to check cross-repo (skip entirely)
 
