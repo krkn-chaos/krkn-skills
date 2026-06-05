@@ -8,6 +8,7 @@ Claude Code skills for the [krkn-chaos](https://github.com/krkn-chaos) ecosystem
 |-------|---------|-------------|
 | [krkn-scenario](skills/krkn-scenario/) | `/krkn-scenario <description>` | Generate validated chaos scenario commands for krknctl and krkn-hub |
 | [krkn-pr-review](skills/krkn-pr-review/) | `/krkn-pr-review <pr-ref>` | Review PRs across krkn, krkn-hub, and krknctl with cross-repo analysis |
+| [krkn-health-check](skills/krkn-health-check/) | `/krkn-health-check <description>` | Scaffold a new custom health check plugin with implementation, tests, and config |
 
 ### krkn-scenario
 
@@ -30,13 +31,23 @@ Reviews pull requests with language-specific analysis (Python, Shell/Dockerfile,
 /krkn-pr-review krknctl#142
 ```
 
+### krkn-health-check
+
+Scaffolds a new custom health check plugin for krkn -- complete with the plugin file, `unittest` test suite, and `config.yaml` snippet. Enforces the factory's strict naming conventions before generating any code so the plugin loads correctly on the first try.
+
+```
+/krkn-health-check add a gRPC health check for my service
+/krkn-health-check monitor Kafka consumer lag during chaos
+/krkn-health-check check PostgreSQL liveness on port 5432
+```
+
 ## Installation
 
 ```bash
 npx skills add https://github.com/krkn-chaos/krkn-skills
 ```
 
-Both skills are now available in your Claude Code sessions.
+All skills are now available in your Claude Code sessions.
 
 <details>
 <summary>Alternative installation methods</summary>
@@ -53,6 +64,10 @@ curl -o .claude/skills/krkn-scenario.md \
 # PR reviewer
 curl -o .claude/skills/krkn-pr-review.md \
   https://raw.githubusercontent.com/krkn-chaos/krkn-skills/main/skills/krkn-pr-review/SKILL.md
+
+# Health check scaffolder
+curl -o .claude/skills/krkn-health-check.md \
+  https://raw.githubusercontent.com/krkn-chaos/krkn-skills/main/skills/krkn-health-check/SKILL.md
 ```
 
 ### Global installation (available in all projects)
@@ -65,6 +80,9 @@ curl -o ~/.claude/skills/krkn-scenario.md \
 
 curl -o ~/.claude/skills/krkn-pr-review.md \
   https://raw.githubusercontent.com/krkn-chaos/krkn-skills/main/skills/krkn-pr-review/SKILL.md
+
+curl -o ~/.claude/skills/krkn-health-check.md \
+  https://raw.githubusercontent.com/krkn-chaos/krkn-skills/main/skills/krkn-health-check/SKILL.md
 ```
 
 ### Clone this repo
@@ -83,6 +101,9 @@ Then register in your project's `.claude/settings.local.json`:
     },
     "krkn-pr-review": {
       "path": "/path/to/krkn-skills/skills/krkn-pr-review/SKILL.md"
+    },
+    "krkn-health-check": {
+      "path": "/path/to/krkn-skills/skills/krkn-health-check/SKILL.md"
     }
   }
 }
