@@ -8,6 +8,7 @@ Claude Code skills for the [krkn-chaos](https://github.com/krkn-chaos) ecosystem
 |-------|---------|-------------|
 | [krkn-scenario](skills/krkn-scenario/) | `/krkn-scenario <description>` | Generate validated chaos scenario commands for krknctl and krkn-hub |
 | [krkn-pr-review](skills/krkn-pr-review/) | `/krkn-pr-review <pr-ref>` | Review PRs across krkn, krkn-hub, and krknctl with cross-repo analysis |
+| [krkn-scenario-plugin](skills/krkn-scenario-plugin/) | `/krkn-scenario-plugin <description>` | Scaffold a new chaos scenario plugin with implementation, tests, and scenario YAML |
 
 ### krkn-scenario
 
@@ -30,13 +31,23 @@ Reviews pull requests with language-specific analysis (Python, Shell/Dockerfile,
 /krkn-pr-review krknctl#142
 ```
 
+### krkn-scenario-plugin
+
+Scaffolds a new chaos scenario plugin for krkn -- complete with the plugin directory, implementation, `__init__.py`, unit test, and example scenario YAML. Enforces the factory's three strict naming rules (file suffix, directory name, class name) before generating any code.
+
+```
+/krkn-scenario-plugin add a DNS disruption scenario for pods
+/krkn-scenario-plugin create a custom memory pressure scenario for specific nodes
+/krkn-scenario-plugin add a new AWS node termination scenario
+```
+
 ## Installation
 
 ```bash
 npx skills add https://github.com/krkn-chaos/krkn-skills
 ```
 
-Both skills are now available in your Claude Code sessions.
+All skills are now available in your Claude Code sessions.
 
 <details>
 <summary>Alternative installation methods</summary>
@@ -53,6 +64,10 @@ curl -o .claude/skills/krkn-scenario.md \
 # PR reviewer
 curl -o .claude/skills/krkn-pr-review.md \
   https://raw.githubusercontent.com/krkn-chaos/krkn-skills/main/skills/krkn-pr-review/SKILL.md
+
+# Scenario plugin scaffolder
+curl -o .claude/skills/krkn-scenario-plugin.md \
+  https://raw.githubusercontent.com/krkn-chaos/krkn-skills/main/skills/krkn-scenario-plugin/SKILL.md
 ```
 
 ### Global installation (available in all projects)
@@ -65,6 +80,9 @@ curl -o ~/.claude/skills/krkn-scenario.md \
 
 curl -o ~/.claude/skills/krkn-pr-review.md \
   https://raw.githubusercontent.com/krkn-chaos/krkn-skills/main/skills/krkn-pr-review/SKILL.md
+
+curl -o ~/.claude/skills/krkn-scenario-plugin.md \
+  https://raw.githubusercontent.com/krkn-chaos/krkn-skills/main/skills/krkn-scenario-plugin/SKILL.md
 ```
 
 ### Clone this repo
@@ -83,6 +101,9 @@ Then register in your project's `.claude/settings.local.json`:
     },
     "krkn-pr-review": {
       "path": "/path/to/krkn-skills/skills/krkn-pr-review/SKILL.md"
+    },
+    "krkn-scenario-plugin": {
+      "path": "/path/to/krkn-skills/skills/krkn-scenario-plugin/SKILL.md"
     }
   }
 }
