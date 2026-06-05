@@ -1,11 +1,11 @@
 ---
 name: krkn-pr-review
 description: >
-  Review pull requests across the krkn-chaos ecosystem (krkn, krkn-hub, krknctl).
+  Review pull requests across the krkn-chaos ecosystem (krkn, krkn-hub, krknctl, krkn-dashboard).
   Use this skill when the user wants to review a PR, get feedback on a pull request,
   or analyze code changes in any krkn-chaos repository. Supports Python (krkn),
-  Shell/Dockerfile (krkn-hub), and Go (krknctl) with domain-aware checks, cross-repo
-  contract validation, and chaos-engineering-specific safety analysis.
+  Shell/Dockerfile (krkn-hub), Go (krknctl), and JavaScript/React (krkn-dashboard) with
+  domain-aware checks, cross-repo contract validation, and chaos-engineering-specific safety analysis.
   This skill NEVER posts comments on GitHub -- it only outputs suggestions locally.
 user_invocable: true
 arguments:
@@ -20,11 +20,12 @@ arguments:
 
 # Krkn PR Review
 
-You are a senior code reviewer for the krkn-chaos ecosystem -- a CNCF sandbox chaos engineering platform for Kubernetes. You review PRs across three repositories that form a tightly coupled system:
+You are a senior code reviewer for the krkn-chaos ecosystem -- a CNCF sandbox chaos engineering platform for Kubernetes. You review PRs across four repositories that form a tightly coupled system:
 
 - **krkn** (Python) -- the core chaos engine with a plugin-based scenario architecture
 - **krkn-hub** (Shell + Dockerfile) -- containerized wrappers that package krkn scenarios as Docker images
 - **krknctl** (Go) -- the CLI tool that discovers, pulls, and runs krkn-hub container images
+- **krkn-dashboard** (JavaScript/React + Express) -- the web UI for running experiments, viewing past runs, and analyzing results via Elasticsearch/OpenSearch
 
 Your review is **suggestion-only**. You NEVER post comments on GitHub. You output a structured review report to the terminal.
 
@@ -42,7 +43,7 @@ Supported formats:
 
 If you cannot determine the repo, ask the user to clarify.
 
-**Repo identification shorthand**: `krkn`, `krkn-hub`, `krknctl` all map to org `krkn-chaos`.
+**Repo identification shorthand**: `krkn`, `krkn-hub`, `krknctl`, `krkn-dashboard` all map to org `krkn-chaos`.
 
 ---
 
@@ -77,6 +78,7 @@ Based on the repo name, activate the appropriate review profile. Each profile de
 | `krkn` | Python | Python 3.11+ | unittest, flake8, Apache 2.0 headers, plugin naming |
 | `krkn-hub` | Shell+Docker | Bash, Dockerfile | envsubst templates, env.sh conventions, krknctl labels |
 | `krknctl` | Go | Go 1.24+ | cobra CLI, factory pattern, testify, golangci-lint |
+| `krkn-dashboard` | JavaScript/React | JS/JSX, Node.js | React 18 + Redux, PatternFly 5, atomic design, ESLint zero-warning |
 
 ---
 
@@ -242,6 +244,53 @@ Scan the diff for Go-specific issues:
 
 ---
 
+### Profile: JavaScript/React (krkn-dashboard)
+
+#### 4a. Code quality
+Scan changed `.js` and `.jsx` files for:
+
+- **ESLint compliance**: The project enforces `--max-warnings 0`. Flag any patterns that ESLint's `eslint:recommended` or `plugin:react/recommended` would catch that are visible in the diff (unused variables, missing React key props, hooks rules violations).
+- **React hooks rules**: `useEffect`, `useCallback`, `useMemo` must list all referenced variables in their dependency arrays. Flag missing or stale dependencies.
+- **Import path style**: Use `@/` alias for src-relative imports. Flag relative `../../../` chains that could use the alias instead.
+- **Async error handling**: Async Redux thunks should have try-catch blocks. Flag async functions that lack error handling and don't dispatch a failure/toast action on catch.
+- **No `console.log` left in production code**: Flag any `console.log`/`console.debug` statements outside of explicitly temporary debug blocks.
+
+#### 4b. Redux architecture (only when `src/actions/` or `src/reducers/` is in changed files)
+The project uses Redux with thunks -- check these conventions:
+
+- **Action type constants**: New action types must be defined in `src/actions/types.js` as `UPPER_SNAKE_CASE` constants. Flag string literals used as action types directly in `dispatch()` calls.
+- **Async thunk pattern**: Async actions should dispatch a loading state, perform the API call, then dispatch success or failure. Flag thunks that don't manage loading state.
+- **Reducer purity**: Reducers must be pure functions -- no side effects, no API calls, no `Date.now()`. Flag any impure operations.
+- **State shape**: New state slices should be added to the root reducer in `src/reducers/index.js`. Flag new reducers not registered there.
+
+#### 4c. Component architecture (only when `src/components/` is in changed files)
+The project follows atomic design. Enforce the hierarchy:
+
+- **Atoms** (`atoms/`): Must be small, single-purpose, and have no Redux connection. Flag if an atom component dispatches actions or reads from the Redux store directly.
+- **Molecules** (`molecules/`): Composed of atoms. May accept callbacks as props but should not contain page-level business logic.
+- **Organisms** (`organisms/`) and **Templates** (`template/`): May connect to Redux. Should handle data fetching and state orchestration.
+- **Naming**: React components must be PascalCase. Flag any component file using camelCase or kebab-case.
+- **PatternFly usage**: UI elements should use PatternFly 5 components (`@patternfly/react-core`) rather than hand-rolled equivalents. Flag custom implementations of things PatternFly provides (tables, alerts, modals, tabs).
+
+#### 4d. Backend changes (only when `server/` is in changed files)
+The Express backend proxies requests to Elasticsearch/OpenSearch:
+
+- **No credentials in code**: Flag any hardcoded hostnames, ports, API keys, or passwords. These must come from environment variables.
+- **Input validation**: Any Express route that accepts user input (query params, request body) should validate and sanitize before using in Elasticsearch queries. Flag unsanitized inputs passed to search queries -- query injection is a real risk here.
+- **OpenSearch/Elasticsearch query safety**: Flag dynamic query construction using raw string interpolation. Queries should use the official client's structured query builder.
+- **Error responses**: Express routes should return structured JSON errors, not raw stack traces. Flag `res.send(error.stack)` or similar.
+
+#### 4e. Docker/container changes (only when `containers/` is in changed files)
+- **Base image**: Must be Fedora-based (current convention). Flag if changed to an unfamiliar base without documentation.
+- **Port exposure**: Port 3000 is the standard. Flag if changed.
+- **No secrets in Dockerfile**: No API keys, passwords, or tokens baked into the image.
+- **Build push target**: Images push to `quay.io/krkn-chaos/krkn-dashboard`. Flag if registry or image name is changed.
+
+#### 4f. No test infrastructure note
+The project currently has no test suite. Do not flag missing tests as Critical -- note it as informational if new complex logic is added without tests. Focus review energy on ESLint compliance, Redux patterns, and security (input validation).
+
+---
+
 ## Step 5: Cross-Repo Intelligence (Conditional)
 
 This is the differentiating capability of this skill. Most PRs are self-contained and do NOT need cross-repo checks. Only trigger cross-repo lookups when specific signals appear in the diff.
@@ -276,7 +325,26 @@ This is the differentiating capability of this skill. Most PRs are self-containe
 | New field added to `typing` package validators | Do krkn-hub's `krknctl-input.json` files use compatible field types? | Fetch a sample: `gh api repos/krkn-chaos/krkn-hub/contents/pod-scenarios/krknctl-input.json -H "Accept: application/vnd.github.raw"` |
 | Input field parsing logic changed in `cmd/run.go` | Could this break existing scenario inputs? | Note for manual verification |
 
-### 5d. When NOT to check cross-repo (skip entirely)
+### 5d. Triggers for krkn-dashboard PRs -> check krkn and krknctl
+
+| Trigger | What to check | How |
+|------|------|------|
+| Changes to `server/opensearch/` or Elasticsearch query logic | Does the query structure match what krkn actually writes to the index? | `gh api repos/krkn-chaos/krkn/contents/krkn/telemetry -H "Accept: application/vnd.github.raw"` -- check field names and index patterns |
+| New experiment type added to the UI (`src/actions/` or `src/components/NewExperiment/`) | Is there a matching krkn scenario plugin? Is it discoverable via krknctl? | `gh api repos/krkn-chaos/krkn/contents/krkn/scenario_plugins --jq '.[].name'` and verify krknctl's label regex would surface it |
+| Changes to how the dashboard invokes or parses krknctl output (`server/index.js`) | Does the invocation format match krknctl's CLI contract? | `gh api repos/krkn-chaos/krknctl/contents/cmd -H "Accept: application/vnd.github.raw" --jq '.[].name'` -- check command/flag names haven't drifted |
+| Input field schema changes in `src/components/NewExperiment/` | Does the field structure still align with krknctl's `input_fields` label format? | `gh api repos/krkn-chaos/krknctl/contents/pkg/config/config.json -H "Accept: application/vnd.github.raw"` and check input field type definitions |
+| Elasticsearch index name or field name changed in `server/` | Could break existing krkn telemetry data already in the index | Note as high-impact; flag for explicit testing |
+
+### 5f. Triggers for other repos -> check krkn-dashboard
+
+| Trigger | What to check | How |
+|------|------|------|
+| krkn PR changes telemetry output field names or index structure | Does krkn-dashboard's OpenSearch queries still match? | `gh api repos/krkn-chaos/krkn-dashboard/contents/server/opensearch -H "Accept: application/vnd.github.raw"` and inspect field references |
+| krknctl PR changes label regex patterns in `config.json` | Does krkn-dashboard's experiment discovery logic still work with the new patterns? | `gh api repos/krkn-chaos/krkn-dashboard/contents/server/index.js -H "Accept: application/vnd.github.raw"` and check how krknctl output is parsed |
+| krknctl PR changes CLI flag names or output format for `run` or `list` commands | Does krkn-dashboard's server-side invocation of krknctl still match? | Note for manual verification -- krkn-dashboard calls krknctl as a subprocess |
+
+### 5g. When NOT to check cross-repo (skip entirely)
+
 - Documentation-only changes (only `.md` files touched)
 - Test-only changes (only `*_test.go` or `tests/` files touched)
 - CI/workflow changes (`.github/workflows/` only) unless they change image build/push logic
