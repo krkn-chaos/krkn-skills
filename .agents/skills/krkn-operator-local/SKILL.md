@@ -21,6 +21,12 @@ arguments:
       Same formats as console_pr but for the krkn-chaos/krkn-operator repo.
       If omitted, the main branch of the cloned krkn-operator repo is used.
     required: false
+  - name: use_default_kubeconfig
+    description: >
+      (Optional) If "true" or "yes", use your default kubectl context instead of
+      creating a local kind/minikube cluster. Useful when you already have a
+      test cluster running. Defaults to "false".
+    required: false
 ---
 
 # krkn-operator Local Test Environment
@@ -214,9 +220,27 @@ If the build succeeds, report: `krkn-operator built successfully → $OPERATOR_D
 
 ## Step 6: Create a One-Node Local Cluster
 
-Create a single-node Kubernetes cluster named `krkn-operator-local` for the operator to connect to. Prefer `kind`; fall back to `minikube`.
+Skip this step if `{{ use_default_kubeconfig }}` is "true" or "yes" — instead, use whatever kubectl context is currently set as default.
 
-### 6a. Check if the cluster already exists
+If you ARE creating a local cluster: Create a single-node Kubernetes cluster named `krkn-operator-local` for the operator to connect to. Prefer `kind`; fall back to `minikube`.
+
+### 6a. Check if using default kubeconfig
+
+```bash
+USE_DEFAULT_KB="{{ use_default_kubeconfig }}"
+if [[ "$USE_DEFAULT_KB" == "true" || "$USE_DEFAULT_KB" == "yes" ]]; then
+  echo "Using default kubeconfig context..."
+  CLUSTER_TOOL="existing"
+  CLUSTER_EXISTS="yes"
+  kubectl cluster-info 2>&1 | head -5
+else
+  echo "Will create local cluster if needed..."
+  CLUSTER_TOOL=""
+  CLUSTER_EXISTS="no"
+fi
+```
+
+### 6b. Check if the cluster already exists (skip if using default kubeconfig)
 
 ```bash
 CLUSTER_NAME="krkn-operator-local"
@@ -237,14 +261,14 @@ fi
 
 If the cluster already exists, reuse it (skip creation). Print which tool and cluster will be used.
 
-### 6b. Create the cluster (if not already present)
+### 6c. Create the cluster (if not already present and not using default kubeconfig)
 
 **kind:**
 
 Write a kind config that maps the operator's host port (8080) into the cluster node, so pods inside the cluster can call back to the operator. Also detect whether Docker or Podman is the backing runtime — the host alias differs between them.
 
 ```bash
-if [ "$CLUSTER_TOOL" = "kind" ] && [ "$CLUSTER_EXISTS" = "no" ]; then
+if [[ "$USE_DEFAULT_KB" != "true" && "$USE_DEFAULT_KB" != "yes" ]] && [ "$CLUSTER_TOOL" = "kind" ] && [ "$CLUSTER_EXISTS" = "no" ]; then
   echo "=== Creating one-node kind cluster: $CLUSTER_NAME ==="
 
   # Detect container runtime to set the correct host alias
@@ -299,7 +323,7 @@ fi
 **minikube fallback:**
 
 ```bash
-if [ "$CLUSTER_TOOL" = "minikube" ] && [ "$CLUSTER_EXISTS" = "no" ]; then
+if [[ "$USE_DEFAULT_KB" != "true" && "$USE_DEFAULT_KB" != "yes" ]] && [ "$CLUSTER_TOOL" = "minikube" ] && [ "$CLUSTER_EXISTS" = "no" ]; then
   echo "=== Creating one-node minikube cluster: $CLUSTER_NAME ==="
   minikube start -p "$CLUSTER_NAME" --nodes=1 --driver=docker \
     --ports=8080:8080,3000:3000
@@ -309,23 +333,25 @@ fi
 
 If cluster creation fails, warn the user and continue — the operator REST API can still serve some endpoints without a live cluster.
 
-### 6c. Set kubectl context
+### 6d. Set kubectl context
 
 ```bash
-if [ "$CLUSTER_TOOL" = "kind" ]; then
-  kubectl config use-context "kind-${CLUSTER_NAME}"
-elif [ "$CLUSTER_TOOL" = "minikube" ]; then
-  kubectl config use-context "$CLUSTER_NAME"
+if [[ "$USE_DEFAULT_KB" != "true" && "$USE_DEFAULT_KB" != "yes" ]]; then
+  if [ "$CLUSTER_TOOL" = "kind" ]; then
+    kubectl config use-context "kind-${CLUSTER_NAME}"
+  elif [ "$CLUSTER_TOOL" = "minikube" ]; then
+    kubectl config use-context "$CLUSTER_NAME"
+  fi
 fi
 
 echo "kubectl context: $(kubectl config current-context)"
 kubectl cluster-info --context "$(kubectl config current-context)" 2>&1 | head -3
 ```
 
-### 6d. Create namespace, install CRDs, and apply RBAC
+### 6e. Create namespace, install CRDs, and apply RBAC
 
 ```bash
-if [ "$CLUSTER_TOOL" != "none" ]; then
+if [ "$CLUSTER_TOOL" != "none" ] || [[ "$USE_DEFAULT_KB" == "true" || "$USE_DEFAULT_KB" == "yes" ]]; then
   echo "=== Creating krkn-operator-system namespace ==="
   kubectl create namespace krkn-operator-system 2>/dev/null || echo "Namespace already exists."
 
