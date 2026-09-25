@@ -8,6 +8,7 @@ Claude Code skills for the [krkn-chaos](https://github.com/krkn-chaos) ecosystem
 |-------|---------|-------------|
 | [krkn-scenario](skills/krkn-scenario/) | `/krkn-scenario <description>` | Generate validated chaos scenario commands for krknctl and krkn-hub |
 | [krkn-pr-review](skills/krkn-pr-review/) | `/krkn-pr-review <pr-ref>` | Review PRs across krkn, krkn-hub, and krknctl with cross-repo analysis |
+| [krkn-operator-local](skills/krkn-operator-local/) | `/krkn-operator-local <console-pr> [operator-pr]` | Check out operator PRs, build the backend, and get a local URL to test |
 
 ### krkn-scenario
 
@@ -30,13 +31,24 @@ Reviews pull requests with language-specific analysis (Python, Shell/Dockerfile,
 /krkn-pr-review krknctl#142
 ```
 
+### krkn-operator-local
+
+Checks out a `krkn-operator-console` PR (and optionally a `krkn-operator` PR), builds the Go backend, installs frontend dependencies, and prints ready-to-run terminal commands with the local test URL (`http://localhost:3000`). Handles stashing uncommitted changes, fork remotes, dependency checks, and port-conflict warnings automatically.
+
+```
+/krkn-operator-local 42
+/krkn-operator-local https://github.com/krkn-chaos/krkn-operator-console/pull/42
+/krkn-operator-local 42 https://github.com/krkn-chaos/krkn-operator/pull/17
+/krkn-operator-local krkn-chaos/krkn-operator-console#42 krkn-chaos/krkn-operator#17
+```
+
 ## Installation
 
 ```bash
 npx skills add https://github.com/krkn-chaos/krkn-skills
 ```
 
-Both skills are now available in your Claude Code sessions.
+All skills are now available in your Claude Code sessions.
 
 <details>
 <summary>Alternative installation methods</summary>
@@ -53,6 +65,11 @@ curl -o .claude/skills/krkn-scenario.md \
 # PR reviewer
 curl -o .claude/skills/krkn-pr-review.md \
   https://raw.githubusercontent.com/krkn-chaos/krkn-skills/main/skills/krkn-pr-review/SKILL.md
+
+
+# Operator local test environment
+curl -o .claude/skills/krkn-operator-local.md \
+  https://raw.githubusercontent.com/krkn-chaos/krkn-skills/main/skills/krkn-operator-local/SKILL.md
 ```
 
 ### Global installation (available in all projects)
@@ -65,6 +82,9 @@ curl -o ~/.claude/skills/krkn-scenario.md \
 
 curl -o ~/.claude/skills/krkn-pr-review.md \
   https://raw.githubusercontent.com/krkn-chaos/krkn-skills/main/skills/krkn-pr-review/SKILL.md
+
+curl -o ~/.claude/skills/krkn-operator-local.md \
+  https://raw.githubusercontent.com/krkn-chaos/krkn-skills/main/skills/krkn-operator-local/SKILL.md
 ```
 
 ### Clone this repo
@@ -83,6 +103,9 @@ Then register in your project's `.claude/settings.local.json`:
     },
     "krkn-pr-review": {
       "path": "/path/to/krkn-skills/skills/krkn-pr-review/SKILL.md"
+    },
+    "krkn-operator-local": {
+      "path": "/path/to/krkn-skills/skills/krkn-operator-local/SKILL.md"
     }
   }
 }
